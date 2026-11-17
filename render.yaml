@@ -1,0 +1,73 @@
+# Render Blueprint — New > Blueprint, pick this repo.
+services:
+  - type: web
+    name: nnn-lease-app
+    runtime: docker
+    plan: starter # LibreOffice needs more memory than the free plan offers
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_URL
+        sync: false # e.g. https://leases.yourdomain.com (no trailing slash)
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: WEBHOOK_AUTH_SECRET
+        generateValue: true
+      - key: EGNYTE_DOMAIN
+        value: gtmoran
+      - key: EGNYTE_CLIENT_ID
+        sync: false
+      - key: EGNYTE_CLIENT_SECRET
+        sync: false
+      - key: EGNYTE_SERVICE_TOKEN
+        sync: false
+      - key: EGNYTE_ROOT
+        value: /Shared/Documents/LEASING APP
+      - key: FOLDER_CONFIG
+        value: CONFIG
+      - key: FOLDER_CURRENT_LEASES
+        value: CURRENT LEASES
+      - key: FOLDER_PENDING_DEALS
+        value: PENDING Deals LOIs & Applications
+      - key: FOLDER_DRAFTS
+        value: DRAFT LEASES
+      - key: FOLDER_EXECUTED
+        value: EXECUTED NEW LEASES
+      - key: TEMPLATE_A_PATH
+        value: TEMPLATES/Tagged/Template_A_Shipping_Docks.docx
+      - key: TEMPLATE_B_PATH
+        value: TEMPLATES/Tagged/Template_B_Overhead_Doors.docx
+      - key: ALLOWED_EMAIL_DOMAINS
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5-5
+      - key: LANDLORD_EMAIL
+        value: STucker@bradleyco.com
+      - key: LANDLORD_SIGNER_NAME
+        sync: false
+      - key: LANDLORD_SIGNER_TITLE
+        sync: false
+      - key: DEFAULT_NNN_RATE
+        value: "2.65"
+      - key: TOTAL_BUILDING_SQFT
+        value: "159600"
+      - key: EMAIL_PROVIDER
+        value: none # resend | smtp | none
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: LIBREOFFICE_PATH
+        value: /usr/bin/soffice

@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+.env.local
+demo-data/Leasing App/Draft Leases/*
+demo-data/Leasing App/Executed New Leases/*
+!demo-data/Leasing App/Draft Leases/.keep
+!demo-data/Leasing App/Executed New Leases/.keep
+*.tsbuildinfo
+next-env.d.ts
