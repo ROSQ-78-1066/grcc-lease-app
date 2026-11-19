@@ -16,6 +16,8 @@ export const POST = withAuth(async (_s, storage, req) => {
 
   const rec = await loadDeal(storage, key);
   if (!rec) return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+  if (rec.signing?.lease?.status === "out")
+    return NextResponse.json({ error: "This lease is out for signature. Cancel the signing before replacing the draft." }, { status: 409 });
 
   const docx = Buffer.from(await file.arrayBuffer());
   const docxEntry = await storage.upload(rec.docxPath, docx);

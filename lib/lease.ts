@@ -62,6 +62,9 @@ export interface LeaseForm {
   estimatedMonthlyAdditionalRent: number;
   totalInitialMonthlyPayment: number;
   securityDeposit: number;
+  // Free rent (Section 4(g)): one month of Base Rent abated, clawed back on default / autopay failure
+  hasFreeRent: boolean;
+  freeRentMonth: number; // which full calendar month of the Term (default 2)
   // Options
   hasRenewalOption: boolean;
   renewalYears: number;
@@ -228,6 +231,8 @@ export function emptyForm(): LeaseForm {
     estimatedMonthlyAdditionalRent: 0,
     totalInitialMonthlyPayment: 0,
     securityDeposit: 0,
+    hasFreeRent: false,
+    freeRentMonth: 2,
     hasRenewalOption: false,
     renewalYears: 3,
     renewalStartDate: "",
@@ -277,6 +282,7 @@ export function mergeData(f: LeaseForm): Record<string, string | boolean> {
     NNN_YEAR: String(f.nnnYear || new Date().getFullYear()),
     TOTAL_INITIAL_MONTHLY_PAYMENT: money(f.totalInitialMonthlyPayment),
     SECURITY_DEPOSIT: money(f.securityDeposit),
+    ...possessionTags(f),
     HAS_RENEWAL_OPTION: !!f.hasRenewalOption,
     RENEWAL_YEARS: String(f.renewalYears || ""),
     RENEWAL_START_DATE: longDate(f.renewalStartDate),
@@ -288,6 +294,46 @@ export function mergeData(f: LeaseForm): Record<string, string | boolean> {
     HAS_SECOND_GUARANTOR: f.guarantorCount > 1,
     GUARANTOR_2_NAME: f.guarantor2Name,
     GUARANTOR_2_ADDRESS: (f.guarantor2Address || "").trim() || BLANK_LINE,
+  };
+}
+
+const ORD_WORDS = ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth"];
+
+/** Calendar month that the free-rent month falls in, e.g. "March 2027". */
+export function freeRentMonthLabel(f: Pick<LeaseForm, "commencementDate" | "freeRentMonth">): string {
+  const start = firstFullMonth(f.commencementDate);
+  const d = parseISO(start ? addMonths(start, (f.freeRentMonth || 2) - 1) : "");
+  return d ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}` : "";
+}
+
+/** Rent for the partial first month (mid-month start), prorated by day on the total monthly payment. */
+export function proratedFirstMonth(f: Pick<LeaseForm, "commencementDate" | "totalInitialMonthlyPayment">): number {
+  const d = parseISO(f.commencementDate);
+  if (!d || d.getUTCDate() === 1) return 0;
+  const days = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return round2((f.totalInitialMonthlyPayment * (days - d.getUTCDate() + 1)) / days);
+}
+
+/** Section 4(e) "Total Due Before Possession" breakdown. */
+export function possessionBreakdown(f: LeaseForm) {
+  const firstMonth = round2(
+    f.hasFreeRent && (f.freeRentMonth || 2) === 1 ? f.estimatedMonthlyAdditionalRent : f.totalInitialMonthlyPayment,
+  );
+  const prorated = proratedFirstMonth(f);
+  return { deposit: round2(f.securityDeposit), firstMonth, prorated, total: round2(f.securityDeposit + firstMonth + prorated) };
+}
+
+function possessionTags(f: LeaseForm) {
+  const b = possessionBreakdown(f);
+  const n = Math.min(Math.max(Math.round(f.freeRentMonth || 2), 1), 12);
+  return {
+    FIRST_MONTH_PAYMENT: money(b.firstMonth),
+    PRORATED_FIRST_MONTH: money(b.prorated),
+    TOTAL_DUE_BEFORE_POSSESSION: money(b.total),
+    HAS_FREE_RENT: !!f.hasFreeRent,
+    FREE_RENT_MONTH_TEXT: `${ORD_WORDS[n]} (${ordinal(n)})`,
+    FREE_RENT_MONTH_LABEL: freeRentMonthLabel(f),
+    ABATED_RENT: money(f.initialMonthlyRent),
   };
 }
 
@@ -325,6 +371,7 @@ export function missingFields(f: LeaseForm): string[] {
   for (const [k, label] of req) if (!f[k]) m.push(label);
   if (!f.rentableSqFt) m.push("Rentable sq ft");
   if (!f.initialAnnualRent) m.push("Initial annual rent");
+  if (f.hasFreeRent && !(f.freeRentMonth >= 1 && f.freeRentMonth <= 12)) m.push("Free rent month (1–12)");
   if (f.hasRenewalOption && (!f.renewalYears || !f.renewalStartDate)) m.push("Renewal years / start date");
   if (f.guarantorCount >= 1 && !f.guarantor1Name) m.push("Guarantor 1 name");
   if (f.guarantorCount >= 1 && !(f.guarantor1Address || "").trim()) m.push("Guarantor 1 address");

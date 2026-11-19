@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { missingFields } from "@/lib/lease";
+import { SigningPanel } from "../Signing";
 import { Alert, api, downloadUrl, postJSON, Spinner, TemplateBadge } from "../ui";
 import type { WizardState } from "./Wizard";
 
@@ -17,6 +18,7 @@ interface GenResult {
 interface Me {
   checks: { email: boolean };
   landlordEmail: string;
+  propertyManagerEmails: string[];
   demoMode: boolean;
 }
 
@@ -24,6 +26,9 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
   const f = st.form;
   const missing = missingFields(f);
   const [res, setRes] = useState<GenResult | null>(null);
+  const [loi, setLoi] = useState<GenResult | null>(null);
+  const [loiBusy, setLoiBusy] = useState(false);
+  const [loiVer, setLoiVer] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [ver, setVer] = useState(0);
@@ -44,6 +49,19 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
       setErr((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function generateLoi() {
+    setLoiBusy(true);
+    setErr("");
+    try {
+      setLoi(await postJSON<GenResult>("/api/loi", { form: f }));
+      setLoiVer((v) => v + 1);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoiBusy(false);
     }
   }
 
@@ -78,9 +96,20 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
                 {f.dealType === "renewal" ? "Renewal" : "New lease"} · <TemplateBadge t={f.template} />
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button className="btn-secondary" onClick={back}>
                 ← Edit fields
+              </button>
+              <button className="btn-secondary" disabled={loiBusy} onClick={generateLoi} title="Non-binding Letter of Intent, saved to Pending Deals">
+                {loiBusy ? (
+                  <>
+                    <Spinner /> Building LOI…
+                  </>
+                ) : loi ? (
+                  "Regenerate LOI"
+                ) : (
+                  "Generate LOI"
+                )}
               </button>
               <button className="btn-primary px-6 py-2.5" disabled={busy} onClick={generate}>
                 {busy ? (
@@ -101,8 +130,47 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
             </div>
           )}
           <p className="mt-4 text-sm text-stone-500">
-            Saves <code>{`Unit ${f.suiteNumber} - ${f.tenantLegalName || "…"} - Draft.docx`}</code> and <code>.pdf</code> to Draft Leases.
+            The lease saves <code>{`Unit ${f.suiteNumber} - ${f.tenantLegalName || "…"} - Draft.docx`}</code> and <code>.pdf</code> to Draft Leases. An LOI saves to{" "}
+            <code>{`Pending Deals/Unit ${f.suiteNumber} - ${f.tenantLegalName || "…"}/`}</code>.
           </p>
+        </div>
+      )}
+
+      {loi && (
+        <div className="card grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Letter of Intent (non-binding)</h3>
+              {res && (
+                <button className="btn-ghost text-xs" disabled={loiBusy} onClick={generateLoi}>
+                  {loiBusy && <Spinner />} Regenerate LOI
+                </button>
+              )}
+            </div>
+            <Alert tone="success">
+              Saved to <b>Pending Deals</b> in Egnyte.
+              {loi.warnings.map((w) => (
+                <div key={w} className="mt-1 text-amber-800">
+                  {w}
+                </div>
+              ))}
+            </Alert>
+            {loi.pdfPath && <iframe key={loiVer} title="LOI" src={`${downloadUrl(loi.pdfPath, true)}&v=${loiVer}`} className="h-96 w-full rounded-lg border border-stone-200 bg-stone-100" />}
+            <div className="flex gap-2">
+              <a className="btn-secondary" href={downloadUrl(loi.docxPath)}>
+                Download .docx
+              </a>
+              {loi.pdfPath && (
+                <a className="btn-secondary" href={downloadUrl(loi.pdfPath)}>
+                  Download .pdf
+                </a>
+              )}
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone-500">Send LOI for signature</h3>
+            <SigningPanel dealKey={loi.key} kind="loi" refreshKey={loiVer} />
+          </div>
         </div>
       )}
 
@@ -167,25 +235,17 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
                 <button className="btn-ghost flex-1" disabled={busy} onClick={generate}>
                   Regenerate
                 </button>
+                {!loi && (
+                  <button className="btn-ghost flex-1" disabled={loiBusy} onClick={generateLoi}>
+                    {loiBusy && <Spinner />} Make LOI
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="card space-y-3 p-5">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Send for signature</h3>
-              {res.pdfLink || res.docxLink ? (
-                <a className="btn-primary w-full py-3" href={(res.pdfLink || res.docxLink)!} target="_blank" rel="noreferrer">
-                  Open File in Egnyte to Send via DocuSign ↗
-                </a>
-              ) : (
-                <Alert tone="info">Egnyte links appear here once the app is connected to Egnyte (demo mode has none).</Alert>
-              )}
-              <ol className="list-decimal space-y-1 pl-5 text-xs text-stone-600">
-                <li>In Egnyte, choose DocuSign → send for signature.</li>
-                <li>
-                  Add <b>Tenant</b> as signer 1 and <b>Landlord</b> as signer 2 (routing order 1 → 2); guarantors as 3 and 4.
-                </li>
-                <li>The hidden anchors \s1\ \d1\ (Tenant), \s2\ \d2\ (Landlord), \s3\–\d4\ (Guarantors) place the fields automatically.</li>
-              </ol>
+              <SigningPanel dealKey={res.key} kind="lease" refreshKey={ver} />
             </div>
 
             <EmailPanel res={res} st={st} me={me} />
@@ -200,11 +260,11 @@ function EmailPanel({ res, st, me }: { res: GenResult; st: WizardState; me: Me |
   const f = st.form;
   const landlord = me?.landlordEmail || st.landlordEmail;
   const options = [
-    { key: "landlord", label: `Landlord (${landlord})`, email: landlord },
+    ...(landlord ? [{ key: "landlord", label: `Landlord (${landlord})`, email: landlord }] : []),
     { key: "tenant", label: `Tenant${f.tenantEmail ? ` (${f.tenantEmail})` : " — no email on file"}`, email: f.tenantEmail },
     { key: "broker", label: `Tenant's broker${f.tenantBrokerEmail ? ` (${f.tenantBrokerEmail})` : " — no email on file"}`, email: f.tenantBrokerEmail },
   ];
-  const [pick, setPick] = useState<Record<string, boolean>>({ landlord: true });
+  const [pick, setPick] = useState<Record<string, boolean>>({});
   const [other, setOther] = useState("");
   const [subject, setSubject] = useState(`Draft Lease for Review – Unit ${f.suiteNumber} – ${f.tenantLegalName}`);
   const [message, setMessage] = useState(
@@ -258,6 +318,9 @@ function EmailPanel({ res, st, me }: { res: GenResult; st: WizardState; me: Me |
         </>
       )}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      {!!me?.propertyManagerEmails?.length && (
+        <p className="text-xs text-stone-500">Property management ({me.propertyManagerEmails.join(", ")}) receives the fully executed copy automatically — not drafts.</p>
+      )}
     </div>
   );
 }

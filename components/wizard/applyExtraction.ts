@@ -66,6 +66,11 @@ export function applyExtraction(form: LeaseForm, x: Extracted, dealType: "renewa
       filled.push("Rent (from monthly)");
     }
     if (x.security_deposit) set("securityDeposit", x.security_deposit, "Security deposit");
+    if (x.free_rent_month && x.free_rent_month >= 1 && x.free_rent_month <= 12) {
+      f.hasFreeRent = true;
+      f.freeRentMonth = x.free_rent_month;
+      filled.push("Free rent month");
+    }
     if (x.has_renewal_option) {
       f.hasRenewalOption = true;
       if (x.renewal_years) f.renewalYears = x.renewal_years;

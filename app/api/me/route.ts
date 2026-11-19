@@ -24,7 +24,9 @@ export const GET = withAuth(async (session, _storage, req) => {
       serviceToken: !!config.egnyte.serviceToken,
       webhookSecret: !!config.webhookSecret,
     },
-    landlordEmail: config.lease.landlordEmail,
+    landlordEmail: config.lease.landlordReviewEmail,
+    landlordSignerEmail: config.lease.landlordSignerEmail,
+    propertyManagerEmails: config.lease.propertyManagerEmails,
     token: showToken ? session.token : undefined,
   });
 });

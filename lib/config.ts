@@ -48,9 +48,22 @@ export const config = {
   lease: {
     totalBuildingSqFt: Number(env("TOTAL_BUILDING_SQFT", "159600")),
     defaultNnnRate: Number(env("DEFAULT_NNN_RATE", "2.65")),
-    landlordEmail: env("LANDLORD_EMAIL", "STucker@bradleyco.com"),
+    /** Landlord's address offered on the "Email draft for review" screen (optional). */
+    landlordReviewEmail: env("LANDLORD_REVIEW_EMAIL"),
     landlordSignerName: env("LANDLORD_SIGNER_NAME"),
     landlordSignerTitle: env("LANDLORD_SIGNER_TITLE"),
+    /** Default email for the Landlord signer in "Send for signature". */
+    landlordSignerEmail: env("LANDLORD_SIGNER_EMAIL"),
+    /** Property management: receive fully executed copies only (never drafts). */
+    propertyManagerEmails: env("PROPERTY_MANAGER_EMAILS", "STucker@bradleyco.com,cbix@bradleyco.com")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    /** Extra recipients for tenant-application alerts (the broker who made the link always gets one). */
+    applicationAlertEmails: env("APPLICATION_ALERT_EMAILS")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
   },
 
   anthropic: {

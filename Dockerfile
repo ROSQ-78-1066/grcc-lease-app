@@ -17,16 +17,18 @@ FROM node:22-bookworm-slim AS run
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=10000 HOSTNAME=0.0.0.0
 
+# poppler-utils (pdftotext) finds the signature markers for built-in signing.
 # LibreOffice (Writer only, headless) for DOCX -> PDF, plus metric-compatible fonts:
 # Carlito = Calibri, Caladea = Cambria, Liberation = Arial/Times New Roman.
 # These keep line breaks and page breaks identical to Word.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libreoffice-writer-nogui fonts-crosextra-carlito fonts-crosextra-caladea \
-      fonts-liberation2 fonts-dejavu-core fontconfig ca-certificates \
+      fonts-liberation2 fonts-dejavu-core fontconfig ca-certificates poppler-utils \
     && fc-cache -f && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/templates ./templates
 RUN mkdir -p /tmp && chown -R node:node /app /tmp
 USER node
 EXPOSE 10000

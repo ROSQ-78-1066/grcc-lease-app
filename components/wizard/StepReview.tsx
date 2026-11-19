@@ -1,6 +1,6 @@
 "use client";
 import { ReactNode } from "react";
-import { addDays, anniversaryFor, escalationDates, firstEscalationFor, isMidMonth, LeaseForm, longDate, money, numberToWords, plainNumber, recalc, terminationFor } from "@/lib/lease";
+import { addDays, anniversaryFor, escalationDates, firstEscalationFor, freeRentMonthLabel, isMidMonth, LeaseForm, possessionBreakdown, longDate, money, numberToWords, plainNumber, recalc, terminationFor } from "@/lib/lease";
 import { Alert, Field, Section, TemplateBadge, Toggle } from "../ui";
 import type { Touched, WizardState } from "./Wizard";
 
@@ -168,11 +168,31 @@ export function StepReview({ st, update, back, next }: { st: WizardState; update
             <Field label="Security deposit ($)" hint={t.securityDeposit ? <ResetLink onClick={() => resetTouched("securityDeposit")} /> : "Defaults to one total monthly payment"}>
               <input className="input" type="number" step="0.01" value={f.securityDeposit || ""} onChange={(e) => set({ securityDeposit: num(e.target.value) }, "securityDeposit")} />
             </Field>
+            <Field
+              label="Total due before possession"
+              hint={`Deposit + first full month${possessionBreakdown(f).prorated ? ` + prorated partial month $${money(possessionBreakdown(f).prorated)}` : ""} — Section 4(e)`}
+            >
+              <input className="input bg-stone-50 font-semibold" readOnly value={`$${money(possessionBreakdown(f).total)}`} />
+            </Field>
           </div>
         </Section>
 
         <Section title="Options">
           <div className="space-y-5">
+            <div>
+              <Toggle checked={!!f.hasFreeRent} onChange={(v) => set({ hasFreeRent: v, freeRentMonth: f.freeRentMonth || 2 })} label="Free rent (one month of Base Rent, Section 4(g))" />
+              {f.hasFreeRent && (
+                <div className="mt-3 grid gap-4 pl-14 sm:grid-cols-2">
+                  <Field label="Free month (full calendar month of the Term)" hint={freeRentMonthLabel(f) ? `= ${freeRentMonthLabel(f)}; abated $${money(f.initialMonthlyRent)}` : "Set the commencement date"}>
+                    <input className="input" type="number" min={1} max={12} value={f.freeRentMonth || ""} onChange={(e) => set({ freeRentMonth: num(e.target.value) })} />
+                  </Field>
+                  <p className="self-center text-xs text-stone-500">
+                    Additional Rent is still due that month. The free rent is clawed back on any default, or if the tenant isn’t on autopay by the
+                    Commencement Date (or cancels it and doesn’t reinstate it within 10 days).
+                  </p>
+                </div>
+              )}
+            </div>
             <div>
               <Toggle checked={f.hasRenewalOption} onChange={(v) => set({ hasRenewalOption: v })} label="Renewal option" />
               {f.hasRenewalOption && (
@@ -344,6 +364,23 @@ function Preview({ f }: { f: LeaseForm }) {
           <b>Total initial monthly payment</b> <V>${money(f.totalInitialMonthlyPayment)}</V> per month to start — the first payment is due at signing.
         </p>
         <p className="mt-3">
+          <b>4(e) Total Due Before Possession.</b> <V>${money(possessionBreakdown(f).total)}</V> in cleared funds before keys: deposit{" "}
+          <V>${money(possessionBreakdown(f).deposit)}</V> + first full month <V>${money(possessionBreakdown(f).firstMonth)}</V>
+          {possessionBreakdown(f).prorated > 0 && (
+            <>
+              {" "}
+              + prorated partial month <V>${money(possessionBreakdown(f).prorated)}</V>
+            </>
+          )}
+          .
+        </p>
+        {f.hasFreeRent && (
+          <p className="mt-3">
+            <b>4(g) Base Rent Abatement.</b> Base Rent for full month <V>{f.freeRentMonth}</V> (<V>{freeRentMonthLabel(f)}</V>) is abated —{" "}
+            <V>${money(f.initialMonthlyRent)}</V>; Additional Rent still due; clawed back on default or autopay failure.
+          </p>
+        )}
+        <p className="mt-3">
           <b>7.1 Security Deposit.</b> <V>${money(f.securityDeposit)}</V>, due at signing with the first total monthly payment.
         </p>
         {f.customProvisions.trim() && (
@@ -367,7 +404,7 @@ function Preview({ f }: { f: LeaseForm }) {
           </div>
           {f.tenantIsIndividual && (
             <div>
-              <b>Exhibit A:</b> notarized Sworn Statement of Business Purpose (tenant signs before a notary; not part of DocuSign)
+              <b>Exhibit A:</b> notarized Sworn Statement of Business Purpose (tenant signs before a notary and uploads it when signing)
             </div>
           )}
         </div>

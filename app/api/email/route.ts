@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { config } from "@/lib/config";
 import { loadDeal, saveDeal } from "@/lib/deals";
 import { emailEnabled, sendMail } from "@/lib/email";
 import { withAuth } from "@/lib/session";
@@ -35,5 +34,5 @@ export const POST = withAuth(async (session, storage, req) => {
   });
   rec.log.push({ at: new Date().toISOString(), event: `Draft emailed to ${to.join(", ")}` });
   await saveDeal(storage, rec);
-  return NextResponse.json({ ok: true, landlord: config.lease.landlordEmail });
+  return NextResponse.json({ ok: true });
 });

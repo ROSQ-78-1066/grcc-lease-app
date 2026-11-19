@@ -3,10 +3,11 @@ import { ReactNode } from "react";
 import { config } from "@/lib/config";
 import type { SessionUser } from "@/lib/session";
 
-export function AppShell({ user, children, active }: { user: SessionUser; children: ReactNode; active?: "home" | "new" | "settings" }) {
+export function AppShell({ user, children, active }: { user: SessionUser; children: ReactNode; active?: "home" | "new" | "applications" | "settings" }) {
   const nav = [
     { href: "/", label: "Dashboard", key: "home" },
     { href: "/new", label: "New Lease", key: "new" },
+    { href: "/applications", label: "Applications", key: "applications" },
     { href: "/settings", label: "Settings", key: "settings" },
   ];
   return (

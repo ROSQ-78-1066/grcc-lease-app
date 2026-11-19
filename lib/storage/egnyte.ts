@@ -118,6 +118,11 @@ export class EgnyteStorage implements Storage {
     if (!res.ok && res.status !== 403 && res.status !== 409) return this.fail(res, `creating folder ${path}`);
   }
 
+  async remove(path: string): Promise<void> {
+    const res = await this.req(`${base()}/pubapi/v1/fs${encPath(path)}`, { method: "DELETE" });
+    if (!res.ok && res.status !== 404) return this.fail(res, `delete of ${path}`);
+  }
+
   async webLink(path: string, entry?: FileEntry): Promise<string | null> {
     let groupId = entry?.groupId;
     let folderId: string | undefined;

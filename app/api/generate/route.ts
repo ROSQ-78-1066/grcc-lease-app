@@ -16,6 +16,12 @@ export const POST = withAuth(async (session, storage, req) => {
   if (missing.length && !allowMissing)
     return NextResponse.json({ error: "Missing required fields", missing }, { status: 422 });
 
+  const existing = await loadDeal(storage, dealKey(form));
+  if (existing?.signing?.lease?.status === "out")
+    return NextResponse.json({ error: "This lease is out for signature. Cancel the signing (Dashboard → Signing) before regenerating it." }, { status: 409 });
+  if (existing?.status === "executed")
+    return NextResponse.json({ error: "This lease has already been executed." }, { status: 409 });
+
   const templatePath = rootPath(config.templates[form.template]);
   const template = await storage.download(templatePath);
   const docx = mergeDocx(template, mergeData(form));
@@ -48,6 +54,8 @@ export const POST = withAuth(async (session, storage, req) => {
     },
     executedPath: prev?.executedPath,
     executedAt: prev?.executedAt,
+    loi: prev?.loi,
+    signing: prev?.signing?.loi ? { loi: prev.signing.loi } : undefined,
     log: [...(prev?.log ?? []), { at: now, event: prev ? "Draft regenerated" : "Draft created" }],
   };
   await saveDeal(storage, rec);

@@ -83,6 +83,10 @@ export class LocalStorage implements Storage {
     await fs.mkdir(this.abs(path), { recursive: true });
   }
 
+  async remove(path: string): Promise<void> {
+    await fs.rm(this.abs(path), { force: true });
+  }
+
   async webLink(): Promise<string | null> {
     return null; // no Egnyte web UI in demo mode
   }

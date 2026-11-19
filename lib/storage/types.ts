@@ -29,6 +29,8 @@ export interface Storage {
   copy(from: string, to: string): Promise<void>;
   exists(path: string): Promise<boolean>;
   ensureFolder(path: string): Promise<void>;
+  /** Delete a file. Egnyte moves it to the Trash, so it can be restored for a while. */
+  remove(path: string): Promise<void>;
   /** Link that opens the file (or folder) in the Egnyte web UI. */
   webLink(path: string, entry?: FileEntry): Promise<string | null>;
 }

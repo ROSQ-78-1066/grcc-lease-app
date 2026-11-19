@@ -27,6 +27,7 @@ export interface Extracted {
   current_final_year_annual_rent?: number;
   escalation_rate_percent?: number;
   security_deposit?: number;
+  free_rent_month?: number;
   has_renewal_option?: boolean;
   renewal_years?: number;
   renewal_start_date?: string;
@@ -59,12 +60,13 @@ const SCHEMA = {
     current_final_year_annual_rent: { type: "number", description: "For an existing lease being renewed: annual base rent in the lease's final year." },
     escalation_rate_percent: { type: "number", description: "Annual base-rent increase in percent, e.g. 3 for 3%." },
     security_deposit: { type: "number" },
+    free_rent_month: { type: "integer", description: "If one month of free BASE rent is offered: which full month of the term (e.g. 2 for the second month). 0 if none." },
     has_renewal_option: { type: "boolean" },
     renewal_years: { type: "integer" },
     renewal_start_date: { type: "string", description: "YYYY-MM-DD" },
     guarantor_names: { type: "array", items: { type: "string" }, description: "Personal guarantors (max 2)." },
     guarantor_addresses: { type: "array", items: { type: "string" }, description: "Home address of each personal guarantor, one line each, in the same order as guarantor_names. Empty string if not stated." },
-    special_provisions: { type: "string", description: "Deal-specific terms not covered by the standard fields (free rent, TI allowance, landlord work, early access, etc.), written as lease-ready sentences. Empty if none." },
+    special_provisions: { type: "string", description: "Deal-specific terms not covered by the standard fields (TI allowance, landlord work, early access, etc.), written as lease-ready sentences. Empty if none." },
     suite_number_mentioned: { type: "string" },
     rentable_sq_ft_mentioned: { type: "number" },
     notes: { type: "string", description: "Short notes for the broker: conflicts between documents, missing items, assumptions made." },

@@ -79,25 +79,29 @@ PDFs (including scans), Word files and photos are sent to Claude as they are. Cl
 | `smtp` | For Microsoft 365: `SMTP_HOST=smtp.office365.com`, `SMTP_PORT=587`, plus `SMTP_USER`/`SMTP_PASS` (SMTP AUTH must be allowed for the mailbox). |
 | `none` | The **Email draft** button opens your own email app (mailto) instead. Attach the downloaded PDF yourself. |
 
-Draft emails go to the people you tick (Landlord `STucker@bradleyco.com`, Tenant, Tenant's broker, or anyone else). The signed-in broker is copied. Executed copies go to the landlord, the tenant, the tenant's broker and the broker who created the draft.
+Email is needed for signing links and one-time codes, application alerts, and the automatic executed-copy email. Without it, the app shows each link for you to copy and send, and signers aren't asked for a code.
+
+Draft-review emails go to the people you tick (Tenant, Tenant's broker, the Landlord if `LANDLORD_REVIEW_EMAIL` is set, or anyone else); the signed-in broker is copied. Property management (`PROPERTY_MANAGER_EMAILS`, default Sally Tucker and Caryn Bix) receives fully executed leases only, never drafts.
 
 ---
 
-## 6. DocuSign through Egnyte
+## 6. Built-in signing, LOIs and tenant applications
 
-1. After generating, click **Open File in Egnyte to Send via DocuSign**. This opens the draft PDF in Egnyte.
-2. In Egnyte, use the DocuSign integration to send it. Set the routing order to **Tenant = 1, Landlord = 2**, then guarantors as 3 and 4.
-3. The templates contain white (invisible) anchor text: `\s1\ \d1\` (Tenant), `\s2\ \d2\` (Landlord), `\s3\ \d3\` and `\s4\ \d4\` (Guarantors). Use DocuSign **auto-place / anchor tags** to put signature and date fields on them.
+**Send for signature** (Step 4, or Dashboard → Signing) replaces DocuSign:
 
-**Filing the signed copy.** When DocuSign saves the completed PDF back into `Draft Leases`, any PDF there whose name matches `EXECUTED_FILE_PATTERN` (default `signed|completed|executed|docusign`) is copied to `Executed New Leases/Unit X - Tenant - EXECUTED.pdf` and emailed to everyone. This happens through:
+1. Signing order is Tenant → Guarantor(s) → Landlord, who countersigns last. Each signer gets a private link (30 days) and, when email is set up, a one-time 6-digit code by email before they can open the document.
+2. The signer agrees to sign electronically, then types, draws, or signs on paper (download, sign, upload a scan). Tenant and Landlord initials are stamped in every page footer. The tenant can also attach a notarized Exhibit A.
+3. Signatures and dates go on the white markers in the templates: `\s1\ \d1\` (Tenant), `\s2\ \d2\` (Landlord), `\s3\ \d3\` and `\s4\ \d4\` (Guarantors). The server finds them with `pdftotext` (poppler-utils, included in the Docker image).
+4. When everyone has signed, the app adds a Certificate of Completion (who, when, IP address, how identity was checked, event history), seals the PDF with a digital signature (any later change shows as invalid in Acrobat), saves it as `EXECUTED NEW LEASES/Unit X - Tenant - EXECUTED.pdf`, marks the deal executed, and emails it to every signer, the sender, the tenant's broker and property management.
+5. A lease that is out for signature can't be regenerated, replaced or deleted until the signing is cancelled.
 
-- the **Sync / File Executed Copy** button on the dashboard, any time; or
-- **automatically**, through the Egnyte webhook:
-  1. Set `WEBHOOK_AUTH_SECRET` (Render can generate it).
-  2. Sign in, open **Settings → Show my Egnyte token**, and paste the token into `EGNYTE_SERVICE_TOKEN`. The webhook has no user session, so it acts as this account. Use an account that can read and write the LEASING APP folders.
-  3. Redeploy, then click **Settings → Register webhook**. Egnyte will then POST `fs:add_file` events for `Draft Leases` to `/api/webhooks/egnyte`.
+**Letter of Intent.** Step 4 → **Generate LOI** fills `templates/LOI_Template.docx` (or your edited copy at `TEMPLATES/Tagged/LOI_Template.docx` in Egnyte, if present) and saves it to `PENDING Deals/Unit X - Tenant/`. It can be sent for signature the same way; the signed LOI is saved beside it.
 
-Check what your DocuSign integration names the completed file. If it doesn't contain one of the pattern words, change `EXECUTED_FILE_PATTERN`.
+**Tenant applications.** **Applications → New application link** makes a private link (expires in 1–60 days, 5 submissions max). The prospect fills in the form and uploads PDF, Word or image files (10 files, 15 MB each, 50 MB total). Everything is saved to `PENDING Deals/Unit X - Business/` with a PDF of the answers, and the broker who made the link gets an email for every submission.
+
+Links carry the creating broker's Egnyte access in encrypted form (keyed to `SESSION_SECRET`), so keep `SESSION_SECRET` unchanged or existing links stop working.
+
+**Signed PDFs from outside the app.** The **File signed copies from Draft Leases** button (and the optional Egnyte webhook in Settings) still files any PDF in `Draft Leases` whose name matches `EXECUTED_FILE_PATTERN`.
 
 ---
 

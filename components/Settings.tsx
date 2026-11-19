@@ -13,6 +13,8 @@ interface Me {
   model: string;
   checks: { anthropic: boolean; email: boolean; emailProvider: string; serviceToken: boolean; webhookSecret: boolean };
   landlordEmail: string;
+  landlordSignerEmail: string;
+  propertyManagerEmails: string[];
   token?: string;
 }
 
@@ -71,9 +73,26 @@ export function Settings() {
         <ul className="divide-y divide-stone-100 text-sm">
           <Check ok={!me.demoMode} label={`Egnyte sign-in (${me.egnyteDomain}.egnyte.com)`} hint="EGNYTE_CLIENT_ID / EGNYTE_CLIENT_SECRET" />
           <Check ok={me.checks.anthropic} label={`AI extraction (${me.model})`} hint="ANTHROPIC_API_KEY" />
-          <Check ok={me.checks.email} label={`Email sending (${me.checks.emailProvider})`} hint="EMAIL_PROVIDER + RESEND_API_KEY or SMTP_*; without it the app opens your email app instead" />
-          <Check ok={me.checks.webhookSecret && me.checks.serviceToken} label="Automatic filing of executed leases" hint="WEBHOOK_AUTH_SECRET + EGNYTE_SERVICE_TOKEN, then register the webhook below" />
+          <Check
+            ok={me.checks.email}
+            label={`Email sending (${me.checks.emailProvider})`}
+            hint="EMAIL_PROVIDER + EMAIL_FROM + RESEND_API_KEY (or SMTP_*). Needed for signing links and one-time codes, application alerts, and automatic executed-copy emails. Without it you copy links yourself."
+          />
         </ul>
+      </Section>
+
+      <Section title="Who gets what">
+        <dl className="grid grid-cols-[220px_1fr] gap-y-1.5 text-sm">
+          <dt className="text-stone-500">Executed copies (property mgmt.)</dt>
+          <dd>{me.propertyManagerEmails.join(", ") || "—"} <span className="text-xs text-stone-400">PROPERTY_MANAGER_EMAILS</span></dd>
+          <dt className="text-stone-500">Landlord signer email (default)</dt>
+          <dd>{me.landlordSignerEmail || "— (typed when sending)"} <span className="text-xs text-stone-400">LANDLORD_SIGNER_EMAIL</span></dd>
+          <dt className="text-stone-500">Landlord on draft-review emails</dt>
+          <dd>{me.landlordEmail || "— (not offered)"} <span className="text-xs text-stone-400">LANDLORD_REVIEW_EMAIL</span></dd>
+        </dl>
+        <p className="mt-2 text-xs text-stone-500">
+          A fully signed lease is emailed to every signer, the sender, the tenant’s broker and property management. Signed LOIs are not sent to property management.
+        </p>
       </Section>
 
       <Section title="Egnyte folders">
@@ -103,10 +122,10 @@ export function Settings() {
       </Section>
 
       {!me.demoMode && (
-        <Section title="Executed-lease webhook">
+        <Section title="Optional: auto-file signed PDFs dropped into Draft Leases">
           <p className="text-sm text-stone-600">
-            Registers an Egnyte webhook so signed PDFs that DocuSign returns to Draft Leases are filed automatically. Needs <code>WEBHOOK_AUTH_SECRET</code> and{" "}
-            <code>EGNYTE_SERVICE_TOKEN</code> on the server.
+            Leases signed in the app are filed automatically. This optional Egnyte webhook also files signed PDFs that someone saves into Draft Leases by hand (for
+            example, a lease signed outside the app). Needs <code>WEBHOOK_AUTH_SECRET</code> and <code>EGNYTE_SERVICE_TOKEN</code> on the server.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button className="btn-secondary" onClick={registerWebhook}>

@@ -74,7 +74,7 @@ export async function fileExecutedLeases(storage: Storage, onlyPath?: string): P
         deal.sourceSignedFile = f.path;
         deal.log.push({ at: deal.executedAt, event: `Executed copy filed from ${f.name}` });
         if (emailEnabled()) {
-          const to = [config.lease.landlordEmail, deal.form.tenantEmail, deal.form.tenantBrokerEmail, deal.createdBy.email].filter(
+          const to = [...config.lease.propertyManagerEmails, deal.form.tenantEmail, deal.form.tenantBrokerEmail, deal.createdBy.email].filter(
             (e, i, a) => e && a.indexOf(e) === i,
           );
           try {

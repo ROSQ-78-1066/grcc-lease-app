@@ -15,7 +15,7 @@ export const GET = withAuth(async (_s, storage) => {
       totalBuildingSqFt: config.lease.totalBuildingSqFt,
       landlordSignerName: config.lease.landlordSignerName,
       landlordSignerTitle: config.lease.landlordSignerTitle,
-      landlordEmail: config.lease.landlordEmail,
+      landlordEmail: config.lease.landlordReviewEmail,
     },
   });
 });
