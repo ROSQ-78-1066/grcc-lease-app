@@ -1,4 +1,5 @@
 "use client";
+import { LeaseViewerButton } from "../LeaseViewer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Extracted } from "@/lib/ai";
 import { Alert, api, Spinner } from "../ui";
@@ -124,7 +125,10 @@ export function StepTenant({
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <div className="card p-6">
-        <h2 className="text-lg font-semibold">Unit {suite.suiteNumber} — what kind of lease?</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Unit {suite.suiteNumber} — what kind of lease?</h2>
+          <LeaseViewerButton suite={suite.suiteNumber} tenant={suite.currentTenant} />
+        </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Choice
             active={dealType === "renewal"}

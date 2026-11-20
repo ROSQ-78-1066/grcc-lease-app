@@ -1,4 +1,5 @@
 "use client";
+import { LeaseViewerButton } from "../LeaseViewer";
 import { useEffect, useMemo, useState } from "react";
 import { recalc, Suite, TEMPLATE_LABEL, TemplateKey } from "@/lib/lease";
 import { MappingModal, SuitesInfo } from "../MappingModal";
@@ -123,6 +124,18 @@ export function StepSuite({ st, update, next }: { st: WizardState; update: (p: P
           ))}
           {info && !matches.length && <p className="p-4 text-sm text-stone-500">No suites match “{q}”.</p>}
         </div>
+        {s && (
+          <div className="mt-6 flex flex-col items-center gap-4 rounded-xl border border-stone-100 bg-stone-50/60 px-6 py-6 text-center">
+            <p className="text-sm text-stone-600">
+              <span className="font-semibold text-stone-800">Unit {s.suiteNumber}</span>
+              {s.currentTenant ? <> · {s.currentTenant}</> : s.landlordUse ? " · Landlord use, available" : " · Vacant"}
+            </p>
+            <LeaseViewerButton suite={s.suiteNumber} tenant={s.currentTenant} align="center" />
+            <button className="btn-primary w-full max-w-xl py-2.5" onClick={next}>
+              Continue to tenant documents →
+            </button>
+          </div>
+        )}
       </div>
 
       <aside className="space-y-4">

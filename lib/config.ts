@@ -35,6 +35,7 @@ export const config = {
     pendingDeals: env("FOLDER_PENDING_DEALS", DEMO ? "Pending Deals (LOIs & Applications)" : "PENDING Deals LOIs & Applications"),
     drafts: env("FOLDER_DRAFTS", DEMO ? "Draft Leases" : "DRAFT LEASES"),
     executed: env("FOLDER_EXECUTED", DEMO ? "Executed New Leases" : "EXECUTED NEW LEASES"),
+    oldLeases: env("FOLDER_OLD_LEASES", DEMO ? "Old Leases" : "OLD LEASES"),
   },
 
   templates: {
