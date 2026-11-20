@@ -177,7 +177,7 @@ export function StepFinish({ st, back }: { st: WizardState; back: () => void }) 
       {err && <Alert tone="error">{err}</Alert>}
 
       {res && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2 text-sm">
               <span className="font-medium">{res.key} — Draft</span>

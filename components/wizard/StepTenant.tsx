@@ -123,7 +123,7 @@ export function StepTenant({
   const nothingChosen = !selected.length && !uploads.length;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 [&>*]:min-w-0 lg:grid-cols-[1fr_380px]">
       <div className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Unit {suite.suiteNumber} — what kind of lease?</h2>
@@ -174,9 +174,9 @@ export function StepTenant({
                     onChange={() => toggle(f.path)}
                     className="accent-brand-600"
                   />
-                  <span className="flex-1 truncate">{f.display}</span>
+                  <span className="min-w-0 flex-1 break-words sm:truncate">{f.display}</span>
                   {f.path === best && <span className="badge bg-emerald-100 text-emerald-800">Suggested match</span>}
-                  {f.modified && <span className="text-xs text-stone-400">{new Date(f.modified).toLocaleDateString()}</span>}
+                  {f.modified && <span className="hidden text-xs text-stone-400 sm:inline">{new Date(f.modified).toLocaleDateString()}</span>}
                 </label>
               ))}
             </div>

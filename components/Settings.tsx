@@ -60,7 +60,7 @@ export function Settings() {
   );
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-6 [overflow-wrap:anywhere]">
       <h1 className="text-2xl font-semibold">Settings</h1>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {me.demoMode && (
@@ -82,7 +82,7 @@ export function Settings() {
       </Section>
 
       <Section title="Who gets what">
-        <dl className="grid grid-cols-[220px_1fr] gap-y-1.5 text-sm">
+        <dl className="grid gap-y-1.5 text-sm sm:grid-cols-[220px_1fr]">
           <dt className="text-stone-500">Executed copies (property mgmt.)</dt>
           <dd>{me.propertyManagerEmails.join(", ") || "—"} <span className="text-xs text-stone-400">PROPERTY_MANAGER_EMAILS</span></dd>
           <dt className="text-stone-500">Landlord signer email (default)</dt>

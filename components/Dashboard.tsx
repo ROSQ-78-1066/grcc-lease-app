@@ -82,6 +82,84 @@ export function Dashboard() {
   const executed = data?.deals.filter((d) => d.status === "executed").length ?? 0;
   const outForSignature = data?.deals.filter((d) => d.signing?.lease?.status === "out" || d.signing?.loi?.status === "out").length ?? 0;
 
+  const renderStatus = (d: Deal) => (
+    <>
+                  {d.status === "executed" ? (
+                    <span className="badge bg-emerald-100 text-emerald-800">Executed</span>
+                  ) : d.signing?.lease?.status === "out" ? (
+                    <span className="badge bg-amber-100 text-amber-800" title={d.signing.lease.waitingOn}>
+                      Out for signature
+                    </span>
+                  ) : d.docxPath ? (
+                    <span className="badge bg-sky-100 text-sky-800">Draft</span>
+                  ) : (
+                    <span className="badge bg-violet-100 text-violet-800">LOI stage</span>
+                  )}
+                  {d.signing?.lease?.status === "out" && <div className="mt-1 text-xs text-stone-500">Waiting on {d.signing.lease.waitingOn}</div>}
+                  {d.loi && (
+                    <div className="mt-1 text-xs text-stone-500">
+                      LOI: {d.loi.signedPath ? "signed" : d.signing?.loi?.status === "out" ? `out — waiting on ${d.signing.loi.waitingOn}` : "drafted"}
+                    </div>
+                  )}
+    </>
+  );
+  const renderFiles = (d: Deal) => (
+    <>
+                  {d.docxPath && (
+                    <a className="text-brand-600 hover:underline" href={downloadUrl(d.docxPath)}>
+                      DOCX
+                    </a>
+                  )}
+                  {d.docxPath && d.pdfPath && (
+                    <a className="text-brand-600 hover:underline" href={downloadUrl(d.pdfPath)}>
+                      PDF
+                    </a>
+                  )}
+                  {d.loi?.pdfPath && (
+                    <a className="text-violet-700 hover:underline" href={downloadUrl(d.loi.signedPath || d.loi.pdfPath)}>
+                      {d.loi.signedPath ? "Signed LOI" : "LOI"}
+                    </a>
+                  )}
+                  {d.executedPath && (
+                    <a className="font-semibold text-emerald-700 hover:underline" href={downloadUrl(d.executedPath)}>
+                      Executed
+                    </a>
+                  )}
+    </>
+  );
+  const renderActions = (d: Deal) => (
+    <>
+                  {(d.pdfPath || d.loi?.pdfPath) && (
+                    d.status === "executed" ? (
+                      <button className="font-semibold text-emerald-700 hover:underline" onClick={() => setOpen(d)} title="Who signed and when, activity and download">
+                        Signed ✓
+                      </button>
+                    ) : (
+                      <button className="text-brand-600 hover:underline" onClick={() => setOpen(d)}>
+                        Signing
+                      </button>
+                    )
+                  )}
+                  {d.status !== "executed" && d.docxPath && d.signing?.lease?.status !== "out" && d.signing?.loi?.status !== "out" && (
+                    confirmDel === d.key ? (
+                      <span className="ml-3 inline-flex items-center gap-2">
+                        <span className="text-xs text-stone-600">Delete draft?</span>
+                        <button className="text-xs font-semibold text-red-700 hover:underline" onClick={() => del(d.key)}>
+                          Yes, delete
+                        </button>
+                        <button className="text-xs text-stone-500 hover:underline" onClick={() => setConfirmDel(null)}>
+                          Keep
+                        </button>
+                      </span>
+                    ) : (
+                      <button className="ml-3 text-stone-500 hover:text-red-700" onClick={() => setConfirmDel(d.key)}>
+                        Delete
+                      </button>
+                    )
+                  )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -129,6 +207,38 @@ export function Dashboard() {
         </Alert>
       )}
 
+      {/* Phones: one card per deal */}
+      <div className="space-y-3 md:hidden">
+        {!data && !err && <Spinner className="mx-auto h-5 w-5" />}
+        {data?.deals.length === 0 && (
+          <div className="card px-4 py-8 text-center text-sm text-stone-500">
+            No leases yet. <Link href="/new" className="text-brand-600 underline">Create the first one</Link>.
+          </div>
+        )}
+        {data?.deals.map((d) => (
+          <div key={d.key} className="card space-y-3 p-4 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-semibold">
+                  Unit {d.suite} <span className="ml-1 text-xs font-normal text-stone-400">{d.dealType === "renewal" ? "Renewal" : "New"}</span>
+                </div>
+                <div className="break-words">{d.tenant}</div>
+              </div>
+              <TemplateBadge t={d.template} />
+            </div>
+            <div>{renderStatus(d)}</div>
+            <div className="text-xs text-stone-500">
+              Updated {new Date(d.updatedAt).toLocaleDateString()} · {d.createdBy}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-stone-100 pt-3">
+              <span className="space-x-3">{renderFiles(d)}</span>
+              <span className="ml-auto">{renderActions(d)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block">
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
@@ -168,83 +278,22 @@ export function Dashboard() {
                   <TemplateBadge t={d.template} />
                 </td>
                 <td className="px-4 py-3">
-                  {d.status === "executed" ? (
-                    <span className="badge bg-emerald-100 text-emerald-800">Executed</span>
-                  ) : d.signing?.lease?.status === "out" ? (
-                    <span className="badge bg-amber-100 text-amber-800" title={d.signing.lease.waitingOn}>
-                      Out for signature
-                    </span>
-                  ) : d.docxPath ? (
-                    <span className="badge bg-sky-100 text-sky-800">Draft</span>
-                  ) : (
-                    <span className="badge bg-violet-100 text-violet-800">LOI stage</span>
-                  )}
-                  {d.signing?.lease?.status === "out" && <div className="mt-1 text-xs text-stone-500">Waiting on {d.signing.lease.waitingOn}</div>}
-                  {d.loi && (
-                    <div className="mt-1 text-xs text-stone-500">
-                      LOI: {d.loi.signedPath ? "signed" : d.signing?.loi?.status === "out" ? `out — waiting on ${d.signing.loi.waitingOn}` : "drafted"}
-                    </div>
-                  )}
+                  {renderStatus(d)}
                 </td>
                 <td className="px-4 py-3 text-stone-500">
                   {new Date(d.updatedAt).toLocaleDateString()} <span className="text-xs">· {d.createdBy}</span>
                 </td>
                 <td className="space-x-3 px-4 py-3 text-right">
-                  {d.docxPath && (
-                    <a className="text-brand-600 hover:underline" href={downloadUrl(d.docxPath)}>
-                      DOCX
-                    </a>
-                  )}
-                  {d.docxPath && d.pdfPath && (
-                    <a className="text-brand-600 hover:underline" href={downloadUrl(d.pdfPath)}>
-                      PDF
-                    </a>
-                  )}
-                  {d.loi?.pdfPath && (
-                    <a className="text-violet-700 hover:underline" href={downloadUrl(d.loi.signedPath || d.loi.pdfPath)}>
-                      {d.loi.signedPath ? "Signed LOI" : "LOI"}
-                    </a>
-                  )}
-                  {d.executedPath && (
-                    <a className="font-semibold text-emerald-700 hover:underline" href={downloadUrl(d.executedPath)}>
-                      Executed
-                    </a>
-                  )}
+                  {renderFiles(d)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
-                  {(d.pdfPath || d.loi?.pdfPath) && (
-                    d.status === "executed" ? (
-                      <button className="font-semibold text-emerald-700 hover:underline" onClick={() => setOpen(d)} title="Who signed and when, activity and download">
-                        Signed ✓
-                      </button>
-                    ) : (
-                      <button className="text-brand-600 hover:underline" onClick={() => setOpen(d)}>
-                        Signing
-                      </button>
-                    )
-                  )}
-                  {d.status !== "executed" && d.docxPath && d.signing?.lease?.status !== "out" && d.signing?.loi?.status !== "out" && (
-                    confirmDel === d.key ? (
-                      <span className="ml-3 inline-flex items-center gap-2">
-                        <span className="text-xs text-stone-600">Delete draft?</span>
-                        <button className="text-xs font-semibold text-red-700 hover:underline" onClick={() => del(d.key)}>
-                          Yes, delete
-                        </button>
-                        <button className="text-xs text-stone-500 hover:underline" onClick={() => setConfirmDel(null)}>
-                          Keep
-                        </button>
-                      </span>
-                    ) : (
-                      <button className="ml-3 text-stone-500 hover:text-red-700" onClick={() => setConfirmDel(d.key)}>
-                        Delete
-                      </button>
-                    )
-                  )}
+                  {renderActions(d)}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
       </div>
       {open && (
         <SigningModal

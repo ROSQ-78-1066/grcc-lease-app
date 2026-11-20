@@ -267,6 +267,12 @@ function SignForm({ base, v, onDone }: { base: string; v: View; onDone: (all: bo
 
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* Phones often show only the first page inside the preview, so offer the whole PDF. */}
+      <div className="lg:hidden">
+        <a className="btn-primary w-full py-3 text-base" href={`${base}/pdf`} target="_blank" rel="noreferrer">
+          Open full document ({v.pages} pages)
+        </a>
+      </div>
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2 text-sm">
           <span>
@@ -276,7 +282,7 @@ function SignForm({ base, v, onDone }: { base: string; v: View; onDone: (all: bo
             Download / print
           </a>
         </div>
-        <iframe title="Document" src={`${base}/pdf`} className="h-[75vh] w-full bg-stone-100" />
+        <iframe title="Document" src={`${base}/pdf`} className="h-[55vh] w-full bg-stone-100 lg:h-[75vh]" />
       </div>
 
       <aside className="space-y-4">

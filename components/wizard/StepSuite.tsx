@@ -61,7 +61,7 @@ export function StepSuite({ st, update, next }: { st: WizardState; update: (p: P
 
   const s = st.suite;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 [&>*]:min-w-0 lg:grid-cols-[1fr_380px]">
       <div className="card p-6">
         <div className="flex items-start justify-between gap-4">
           <div>

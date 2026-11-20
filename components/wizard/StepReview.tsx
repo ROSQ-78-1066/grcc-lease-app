@@ -27,7 +27,7 @@ export function StepReview({ st, update, back, next }: { st: WizardState; update
   const escDates = escalationDates(f.firstEscalationDate, f.terminationDate);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
+    <div className="grid gap-6 [&>*]:min-w-0 xl:grid-cols-[minmax(0,1fr)_460px]">
       <div className="space-y-5">
         {st.aiNotes.length > 0 && (
           <Alert tone="warn">

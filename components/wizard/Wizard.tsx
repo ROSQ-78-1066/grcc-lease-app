@@ -31,7 +31,25 @@ export function Wizard() {
 
   return (
     <div>
-      <ol className="mb-8 grid grid-cols-4 gap-2">
+      <div className="mb-5 sm:hidden">
+        <div className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+          Step {step + 1} of {STEPS.length}
+        </div>
+        <div className="text-lg font-semibold">{STEPS[step]}</div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {STEPS.map((label, i) => (
+            <button
+              key={label}
+              type="button"
+              disabled={i > step}
+              onClick={() => setStep(i)}
+              aria-label={`Step ${i + 1}: ${label}`}
+              className={`h-1.5 rounded-full ${i <= step ? "bg-brand-600" : "bg-stone-200"}`}
+            />
+          ))}
+        </div>
+      </div>
+      <ol className="mb-8 hidden grid-cols-4 gap-2 sm:grid">
         {STEPS.map((label, i) => (
           <li key={label}>
             <button
