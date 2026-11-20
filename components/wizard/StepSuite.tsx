@@ -1,5 +1,5 @@
 "use client";
-import { LeaseViewerButton } from "../LeaseViewer";
+import { allLeases, LeaseViewerButton } from "../LeaseViewer";
 import { useEffect, useMemo, useState } from "react";
 import { recalc, Suite, TEMPLATE_LABEL, TemplateKey } from "@/lib/lease";
 import { MappingModal, SuitesInfo } from "../MappingModal";
@@ -19,6 +19,11 @@ export function StepSuite({ st, update, next }: { st: WizardState; update: (p: P
   const [err, setErr] = useState("");
   const [q, setQ] = useState(st.suite?.suiteNumber || "");
   const [showMap, setShowMap] = useState(false);
+
+  // Start reading the lease list now, so "View existing lease" is ready when a suite is picked.
+  useEffect(() => {
+    allLeases().catch(() => {});
+  }, []);
 
   useEffect(() => {
     api<SuitesInfo & { defaults: Defaults }>("/api/suites")

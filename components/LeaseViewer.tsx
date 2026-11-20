@@ -12,7 +12,7 @@ interface LeaseFile {
 
 // One listing per page visit, shared by every button.
 let cache: Promise<LeaseFile[]> | null = null;
-function allLeases(): Promise<LeaseFile[]> {
+export function allLeases(): Promise<LeaseFile[]> {
   if (!cache)
     cache = api<{ files: LeaseFile[] }>("/api/leases")
       .then((r) => r.files)
