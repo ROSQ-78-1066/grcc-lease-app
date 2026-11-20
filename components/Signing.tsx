@@ -36,6 +36,7 @@ export function SigningPanel({ dealKey, kind, refreshKey = 0, onChange }: { deal
   const [st, setSt] = useState<Status | null>(null);
   const [signers, setSigners] = useState<SignerIn[]>([]);
   const [message, setMessage] = useState("");
+  const [requireCode, setRequireCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -57,7 +58,7 @@ export function SigningPanel({ dealKey, kind, refreshKey = 0, onChange }: { deal
     setErr("");
     setNote("");
     try {
-      const r = await postJSON<{ link: string; emailed: boolean; firstSigner: string }>("/api/signing", { key: dealKey, kind, signers, message });
+      const r = await postJSON<{ link: string; emailed: boolean; firstSigner: string }>("/api/signing", { key: dealKey, kind, signers, message, requireCode });
       setNote(r.emailed ? `Sent. ${r.firstSigner} has been emailed a private signing link.` : `Created. Email isn’t set up yet, so copy ${r.firstSigner}’s link below and send it yourself.`);
       load();
       onChange?.();
@@ -191,7 +192,7 @@ export function SigningPanel({ dealKey, kind, refreshKey = 0, onChange }: { deal
           {!st.hasPdf && <Alert tone="warn">Generate the {label} PDF first.</Alert>}
           <p className="text-xs text-stone-600">
             Signing order: Tenant{kind === "lease" && signers.some((s) => s.role === "guarantor") ? " → Guarantor(s)" : ""} → Landlord countersigns last. Each signer gets a
-            private link{st.emailEnabled ? " by email and a one-time code to open it" : ""}.
+            private link{st.emailEnabled ? " by email" : ""}.
           </p>
           <div className="space-y-2">
             {signers.map((s, i) => (
@@ -209,11 +210,17 @@ export function SigningPanel({ dealKey, kind, refreshKey = 0, onChange }: { deal
             ))}
           </div>
           <textarea className="input min-h-16" placeholder="Optional note to the signers" value={message} onChange={(e) => setMessage(e.target.value)} />
+          {st.emailEnabled && (
+            <label className="flex items-start gap-2 text-xs text-stone-600">
+              <input type="checkbox" className="mt-0.5 accent-brand-600" checked={requireCode} onChange={(e) => setRequireCode(e.target.checked)} />
+              <span>Also require a one-time email code before each signer can open the document (extra identity check; usually not needed).</span>
+            </label>
+          )}
           {kind === "lease" && st.individualTenant && (
             <p className="text-xs text-amber-800">Exhibit A must be notarized. The tenant can upload the notarized page when signing.</p>
           )}
           {!st.emailEnabled && (
-            <p className="text-xs text-stone-500">Email sending isn’t set up yet: you’ll copy each signer’s link and send it yourself, and signers won’t get an email code.</p>
+            <p className="text-xs text-stone-500">Email sending isn’t set up yet: you’ll copy each signer’s link and send it yourself.</p>
           )}
           <button className="btn-primary w-full py-3" disabled={busy || !st.hasPdf} onClick={send}>
             {busy && <Spinner />} Send {label} for signature

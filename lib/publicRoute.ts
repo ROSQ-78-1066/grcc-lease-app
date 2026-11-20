@@ -38,7 +38,7 @@ export async function signerCtx(token: string): Promise<SignerCtx> {
   const env = await loadEnvelope(storage, p.id);
   if (!env || !env.signers[p.s]) throw new PublicError("This signing link is not valid.", 404);
   if (env.status === "voided") throw new PublicError("This document was withdrawn by the sender. Please contact them if you have questions.", 410);
-  let verified = !codeRequired();
+  let verified = !codeRequired(env);
   if (!verified) {
     const c = (await cookies()).get(cookieName(env.id, p.s));
     const v = c ? await openSmall<{ e: string; i: number }>(c.value) : null;

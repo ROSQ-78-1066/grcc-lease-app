@@ -50,7 +50,7 @@ services:
       - key: LANDLORD_REVIEW_EMAIL
         sync: false
       - key: PROPERTY_MANAGER_EMAILS
-        value: STucker@bradleyco.com,cbix@bradleyco.com
+        value: tom@moranmail.com # TEMPORARY during go-live testing; restore: STucker@bradleyco.com,cbix@bradleyco.com
       - key: APPLICATION_ALERT_EMAILS
         sync: false
       - key: LANDLORD_SIGNER_NAME

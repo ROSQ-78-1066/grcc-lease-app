@@ -7,7 +7,7 @@ import { LocalStorage } from "./storage/local";
 import { Storage, StorageError } from "./storage/types";
 
 export const SESSION_COOKIE = "lease_session";
-const MAX_AGE = 60 * 60 * 24 * 14; // 14 days
+const MAX_AGE = 60 * 60 * 24 * 90; // 90 days
 
 export interface SessionUser {
   username: string;

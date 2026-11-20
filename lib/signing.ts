@@ -16,6 +16,7 @@ export interface Signer {
   email: string;
   status: "waiting" | "sent" | "signed";
   sentAt?: string;
+  linkEmailed?: boolean;
   viewedAt?: string;
   verifiedAt?: string;
   consentAt?: string;
@@ -45,6 +46,8 @@ export interface Envelope {
   sentBy: { name: string; email: string };
   sentAt: string;
   message: string;
+  /** Ask each signer for a one-time email code before they can open the document (off by default). */
+  requireCode?: boolean;
   completedAt?: string;
   finalPath?: string;
   finalSha256?: string;
@@ -126,6 +129,7 @@ export async function createEnvelope(
   sentBy: { name: string; email: string },
   message: string,
   egnyteToken: string,
+  requireCode = false,
 ): Promise<{ env: Envelope; link: string; emailed: boolean }> {
   const pdfPath = kind === "lease" ? deal.pdfPath : deal.loi?.pdfPath;
   if (!pdfPath) throw new Error(`There is no PDF of the ${kind === "lease" ? "lease draft" : "LOI"} to send. Generate it first.`);
@@ -168,6 +172,7 @@ export async function createEnvelope(
     sentBy,
     sentAt: now,
     message: message.trim(),
+    requireCode: requireCode && emailEnabled(),
     events: [{ at: now, event: `Created by ${sentBy.name}${sentBy.email ? ` (${sentBy.email})` : ""} from ${pdfPath.split("/").pop()}` }],
   };
   await storage.ensureFolder(envDir(id));
@@ -196,10 +201,12 @@ export async function notifyCurrent(env: Envelope, egnyteToken: string): Promise
         `${env.sentBy.name} has sent you the ${env.kind === "lease" ? "lease" : "letter of intent"} for Suite ${env.suite} to review and sign as ${ROLE_LABEL[s.role]}.\n\n` +
         (env.message ? `${env.message}\n\n` : "") +
         `Open your private signing link:\n${link}\n\n` +
-        `For your security you'll get a one-time code by email when you open it. The link is personal to you; please don't forward it. It expires in ${LINK_DAYS} days.\n\n` +
+        (env.requireCode ? `For your security you'll get a one-time code by email when you open it. ` : "") +
+        `The link is personal to you; please don't forward it. It expires in ${LINK_DAYS} days.\n\n` +
         `Questions? Reply to this email to reach ${env.sentBy.name}.`,
     });
     emailed = true;
+    s.linkEmailed = true;
     log(env, `Signing link emailed to ${signerLabel(s)} (${s.email})`);
   } else {
     log(env, `Signing link created for ${signerLabel(s)} (to be delivered by ${env.sentBy.name})`);
@@ -211,7 +218,7 @@ export async function notifyCurrent(env: Envelope, egnyteToken: string): Promise
 // Signer side: one-time email code
 // ---------------------------------------------------------------------------
 
-export const codeRequired = () => emailEnabled();
+export const codeRequired = (env: Envelope) => !!env.requireCode && emailEnabled();
 
 export async function sendCode(storage: Storage, env: Envelope, i: number): Promise<string> {
   const s = env.signers[i];
@@ -357,7 +364,11 @@ async function finalize(storage: Storage, env: Envelope) {
       name: s.name,
       email: s.email,
       method: method(s),
-      identity: s.verifiedAt ? `One-time code sent to ${s.email}, verified ${etTime(s.verifiedAt)}` : "Private signing link (no email code)",
+      identity: s.verifiedAt
+        ? `Private signing link emailed to ${s.email}; one-time email code verified ${etTime(s.verifiedAt)}`
+        : s.linkEmailed
+          ? `Private signing link emailed to ${s.email}`
+          : "Private signing link delivered by the sender",
       consentAt: s.consentAt,
       signedAt: s.signedAt,
       ip: s.ip,

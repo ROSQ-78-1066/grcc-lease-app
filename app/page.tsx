@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 
 export default async function Home() {
   const s = await getSession();
-  if (!s) redirect("/login");
+  if (!s) redirect("/api/auth/login");
   return (
     <AppShell user={s.user} active="home">
       <Dashboard />

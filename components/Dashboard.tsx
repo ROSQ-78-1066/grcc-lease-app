@@ -213,9 +213,15 @@ export function Dashboard() {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   {(d.pdfPath || d.loi?.pdfPath) && (
-                    <button className="text-brand-600 hover:underline" onClick={() => setOpen(d)}>
-                      Signing
-                    </button>
+                    d.status === "executed" ? (
+                      <button className="font-semibold text-emerald-700 hover:underline" onClick={() => setOpen(d)} title="Who signed and when, activity and download">
+                        Signed ✓
+                      </button>
+                    ) : (
+                      <button className="text-brand-600 hover:underline" onClick={() => setOpen(d)}>
+                        Signing
+                      </button>
+                    )
                   )}
                   {d.status !== "executed" && d.docxPath && d.signing?.lease?.status !== "out" && d.signing?.loi?.status !== "out" && (
                     confirmDel === d.key ? (

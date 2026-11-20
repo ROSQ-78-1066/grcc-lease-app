@@ -46,7 +46,13 @@ export const GET = withAuth(async (session, storage, req) => {
 
 // POST { key, kind, signers: NewSigner[], message } — send for signature
 export const POST = withAuth(async (session, storage, req) => {
-  const { key, kind, signers, message } = (await req.json()) as { key: string; kind: DocKind; signers: NewSigner[]; message?: string };
+  const { key, kind, signers, message, requireCode } = (await req.json()) as {
+    key: string;
+    kind: DocKind;
+    signers: NewSigner[];
+    message?: string;
+    requireCode?: boolean;
+  };
   const deal = await loadDeal(storage, key);
   if (!deal) throw new StorageError("Deal not found. Generate the draft first.", 404);
   if (kind !== "lease" && kind !== "loi") throw new StorageError("Unknown document", 400);
@@ -60,6 +66,7 @@ export const POST = withAuth(async (session, storage, req) => {
     { name: who(session.user), email: session.user.email },
     message || "",
     session.token,
+    !!requireCode,
   );
   return NextResponse.json({ id: env.id, link, emailed, firstSigner: env.signers[0].name });
 });

@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ token: string }> };
 export async function GET(_req: Request, { params }: Ctx) {
   try {
     const c = await signerCtx((await params).token);
-    return NextResponse.json({ ...signerView(c.env, c.i), verified: c.verified, codeRequired: codeRequired() });
+    return NextResponse.json({ ...signerView(c.env, c.i), verified: c.verified, codeRequired: codeRequired(c.env) });
   } catch (e) {
     return publicError(e);
   }
