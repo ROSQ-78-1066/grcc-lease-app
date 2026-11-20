@@ -62,7 +62,7 @@ services:
       - key: TOTAL_BUILDING_SQFT
         value: "159600"
       - key: EMAIL_PROVIDER
-        value: none # resend | smtp | none
+        value: resend # resend | smtp | none
       - key: EMAIL_FROM
         sync: false
       - key: RESEND_API_KEY
