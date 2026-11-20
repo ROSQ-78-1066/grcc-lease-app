@@ -108,7 +108,7 @@ export function Applications() {
           </Field>
         </div>
         <button className="btn-primary mt-4" disabled={busy} onClick={create}>
-          {busy && <Spinner />} Create link
+          {busy && <Spinner />} Email link
         </button>
         {data && (
           <p className="mt-3 text-xs text-stone-500">
