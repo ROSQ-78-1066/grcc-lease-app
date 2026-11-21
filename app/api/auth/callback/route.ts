@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
-import { SESSION_COOKIE, sealSession, sessionCookieOptions } from "@/lib/session";
+import { getSession, SESSION_COOKIE, sealSession, sessionCookieOptions } from "@/lib/session";
 import { egnyteUserInfo } from "@/lib/storage/egnyte";
 
 function fail(msg: string) {
@@ -13,7 +13,12 @@ export async function GET(req: NextRequest) {
   const err = req.nextUrl.searchParams.get("error");
   if (err) return fail(`Egnyte sign-in was cancelled (${err}).`);
   if (!code) return fail("Missing authorization code from Egnyte.");
-  if (!state || state !== req.cookies.get("oauth_state")?.value) return fail("Sign-in expired. Please try again.");
+  const pending = (req.cookies.get("oauth_state")?.value || "").split(".");
+  if (!state || !pending.includes(state)) {
+    // Already signed in (e.g. a second tab finished first)? Just continue.
+    if (await getSession()) return NextResponse.redirect(`${config.appUrl}/`);
+    return fail("Sign-in expired. Please try again.");
+  }
 
   const body = new URLSearchParams({
     client_id: config.egnyte.clientId,
