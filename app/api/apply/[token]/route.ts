@@ -29,6 +29,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       prospectEmail: rec.prospectEmail,
       broker: rec.createdBy.name,
       expiresAt: rec.expiresAt,
+      open: !!rec.open,
       fields: APP_FIELDS,
       certify: CERTIFY_TEXT,
       limits: UPLOAD_LIMITS,
@@ -42,9 +43,11 @@ export async function GET(_req: Request, { params }: Ctx) {
 export async function POST(req: Request, { params }: Ctx) {
   try {
     const { storage, rec } = await ctx((await params).token);
-    const closed = linkOpen(rec);
+    const closed = linkOpen(rec, clientIp(req));
     if (closed) throw new PublicError(closed, 410);
     const fd = await req.formData();
+    // Hidden trap field: real people never see or fill it; form-filling bots usually do.
+    if (String(fd.get("company_website") || "").trim()) return NextResponse.json({ ok: true, files: 0 });
 
     const values: Record<string, string> = {};
     for (const s of APP_FIELDS)

@@ -18,6 +18,7 @@ interface Info {
   prospectEmail: string;
   broker: string;
   expiresAt: string;
+  open: boolean;
   fields: { section: string; fields: FieldDef[] }[];
   certify: string;
   limits: { maxFiles: number; maxFileMb: number; maxTotalMb: number; accept: string };
@@ -41,7 +42,8 @@ export function ApplyClient({ token }: { token: string }) {
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || "This link isn’t valid.");
         setInfo(j);
-        setVals({ suite: j.suite || "", businessName: j.prospect || "", email: j.prospectEmail || "" });
+        // An open link's "prospect" is the broker it was made for, so don't pre-fill their details.
+        setVals(j.open ? { suite: j.suite || "" } : { suite: j.suite || "", businessName: j.prospect || "", email: j.prospectEmail || "" });
       })
       .catch((e) => setErr(e.message));
   }, [url]);
@@ -101,7 +103,7 @@ export function ApplyClient({ token }: { token: string }) {
     return (
       <PublicShell title="Tenant application">
         <Alert tone="success">
-          Thank you — your application{files.length ? ` and ${files.length} file${files.length > 1 ? "s" : ""}` : ""} were received. {info.broker} will be in touch.
+          Thank you — your application{files.length ? ` and ${files.length} file${files.length > 1 ? "s" : ""}` : ""} were received. We’ll be in touch.
         </Alert>
       </PublicShell>
     );
@@ -110,11 +112,28 @@ export function ApplyClient({ token }: { token: string }) {
     <PublicShell title="Tenant application">
       <h1 className="text-2xl font-semibold">Tenant application{info.suite ? ` — Suite ${info.suite}` : ""}</h1>
       <p className="mt-1 text-sm text-stone-600">
-        {info.streetNumber ? `${info.streetNumber} ` : ""}Roger B. Chaffee Memorial Blvd. SE, Wyoming, MI. Sent by {info.broker}. This link expires{" "}
-        {new Date(info.expiresAt).toLocaleDateString(undefined, { dateStyle: "long" })}.
+        {info.streetNumber ? `${info.streetNumber} ` : ""}Roger B. Chaffee Memorial Blvd. SE, Wyoming, MI.
+        {!info.open && (
+          <>
+            {" "}
+            Sent by {info.broker}.
+          </>
+        )}
+        {info.expiresAt && <> This link expires {new Date(info.expiresAt).toLocaleDateString(undefined, { dateStyle: "long" })}.</>}
       </p>
 
       <form className="mt-6 space-y-6" onSubmit={submit}>
+        {/* Spam trap: hidden from people, often filled in by bots. */}
+        <input
+          type="text"
+          name="company_website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute left-[-9999px] h-px w-px opacity-0"
+          value={vals.company_website || ""}
+          onChange={(e) => set("company_website", e.target.value)}
+        />
         {info.fields.map((s) => (
           <section key={s.section} className="card p-5">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-stone-700">{s.section}</h2>

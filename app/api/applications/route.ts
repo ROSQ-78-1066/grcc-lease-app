@@ -20,6 +20,8 @@ export const GET = withAuth(async (session, storage) => {
         prospect: l.prospect,
         prospectEmail: l.prospectEmail,
         expiresAt: l.expiresAt,
+        open: !!l.open,
+        notify: l.notify || [],
         status: l.status,
         closedReason: linkOpen(l),
         url: linkOpen(l) ? null : await linkUrl(l, session.token),
@@ -33,11 +35,27 @@ export const GET = withAuth(async (session, storage) => {
 
 // POST { suite, streetNumber, prospect, prospectEmail, days } — new private application link
 export const POST = withAuth(async (session, storage, req) => {
-  const body = (await req.json()) as { suite?: string; streetNumber?: string; prospect?: string; prospectEmail?: string; days?: number };
+  const body = (await req.json()) as {
+    suite?: string;
+    streetNumber?: string;
+    prospect?: string;
+    prospectEmail?: string;
+    days?: number;
+    open?: boolean;
+    notify?: string[];
+  };
   const name = `${session.user.firstName} ${session.user.lastName}`.trim() || session.user.username;
   const { rec, url, emailed } = await createLink(
     storage,
-    { suite: body.suite || "", streetNumber: body.streetNumber || "", prospect: body.prospect || "", prospectEmail: body.prospectEmail || "", days: body.days || 14 },
+    {
+      suite: body.suite || "",
+      streetNumber: body.streetNumber || "",
+      prospect: body.prospect || "",
+      prospectEmail: body.prospectEmail || "",
+      days: body.days ?? 14,
+      open: !!body.open,
+      notify: body.notify || [],
+    },
     { name, email: session.user.email },
     session.token,
   );

@@ -14,6 +14,8 @@ export const UPLOAD_LIMITS = {
   maxFileMb: 15,
   maxTotalMb: 50,
   maxSubmissions: 5,
+  /** Open (reusable) links: most submissions accepted from one internet address per day. */
+  openPerIpPerDay: 3,
   accept: ".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.heif",
 };
 
@@ -51,7 +53,12 @@ export interface AppLink {
   streetNumber: string;
   prospect: string;
   prospectEmail: string;
+  /** "" = never expires (open links only). */
   expiresAt: string;
+  /** Reusable link a broker can forward to any prospect: no submission cap, optional expiry. */
+  open?: boolean;
+  /** Extra people alerted on every submission (e.g. the leasing broker). */
+  notify?: string[];
   status: "active" | "revoked";
   submissions: Submission[];
 }
@@ -91,11 +98,13 @@ export async function listLinks(storage: Storage): Promise<AppLink[]> {
 
 export async function createLink(
   storage: Storage,
-  input: { suite: string; streetNumber: string; prospect: string; prospectEmail: string; days: number },
+  input: { suite: string; streetNumber: string; prospect: string; prospectEmail: string; days: number; open?: boolean; notify?: string[] },
   createdBy: { name: string; email: string },
   egnyteToken: string,
 ) {
-  const days = Math.min(Math.max(Math.round(input.days || 14), 1), 60);
+  const open = !!input.open;
+  // Open links may run with no expiry (days = 0) or up to a year; private links 1-60 days.
+  const days = open ? Math.min(Math.max(Math.round(input.days || 0), 0), 365) : Math.min(Math.max(Math.round(input.days || 14), 1), 60);
   const rec: AppLink = {
     id: newId("A"),
     createdAt: new Date().toISOString(),
@@ -104,7 +113,9 @@ export async function createLink(
     streetNumber: input.streetNumber.trim(),
     prospect: input.prospect.trim(),
     prospectEmail: input.prospectEmail.trim(),
-    expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
+    expiresAt: days ? new Date(Date.now() + days * 86_400_000).toISOString() : "",
+    open,
+    notify: (input.notify || []).map((e) => e.trim().toLowerCase()).filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)),
     status: "active",
     submissions: [],
   };
@@ -112,15 +123,30 @@ export async function createLink(
   const url = await linkUrl(rec, egnyteToken, days);
   let emailed = false;
   if (rec.prospectEmail && emailEnabled()) {
+    const until = rec.expiresAt
+      ? `It works until ${new Date(rec.expiresAt).toLocaleDateString("en-US", { timeZone: "America/New_York", dateStyle: "long" })}. `
+      : "";
     await sendMail({
       to: [rec.prospectEmail],
       replyTo: createdBy.email || undefined,
-      subject: `Tenant application${rec.suite ? ` – Suite ${rec.suite}` : ""}, Roger B. Chaffee Memorial Blvd. SE`,
-      text:
-        `Hello${rec.prospect ? ` ${rec.prospect}` : ""},\n\n` +
-        `Thank you for your interest${rec.suite ? ` in Suite ${rec.suite}` : ""}. Please complete our tenant application and upload any supporting documents here:\n\n${url}\n\n` +
-        `This private link expires on ${new Date(rec.expiresAt).toLocaleDateString("en-US", { timeZone: "America/New_York", dateStyle: "long" })}. ` +
-        `You can upload PDF, Word and image files.\n\nQuestions? Reply to this email.\n\n${createdBy.name}`,
+      ...(rec.open
+        ? {
+            subject: "Your reusable tenant application link – Roger B. Chaffee Memorial Blvd. SE",
+            text:
+              `Hello${rec.prospect ? ` ${rec.prospect}` : ""},\n\n` +
+              `Here is the online tenant application link for the Roger B. Chaffee Memorial Blvd. SE buildings. You can forward it to any prospective tenant, ` +
+              `as many times as you like:\n\n${url}\n\n` +
+              `Each prospect fills in the form and uploads their documents (PDF, Word or photos). Everything is filed automatically, and you'll get an email for every submission. ` +
+              `${until}\n\n${createdBy.name}`,
+          }
+        : {
+            subject: `Tenant application${rec.suite ? ` – Suite ${rec.suite}` : ""}, Roger B. Chaffee Memorial Blvd. SE`,
+            text:
+              `Hello${rec.prospect ? ` ${rec.prospect}` : ""},\n\n` +
+              `Thank you for your interest${rec.suite ? ` in Suite ${rec.suite}` : ""}. Please complete our tenant application and upload any supporting documents here:\n\n${url}\n\n` +
+              `This private link expires on ${new Date(rec.expiresAt).toLocaleDateString("en-US", { timeZone: "America/New_York", dateStyle: "long" })}. ` +
+              `You can upload PDF, Word and image files.\n\nQuestions? Reply to this email.\n\n${createdBy.name}`,
+          }),
     });
     emailed = true;
   }
@@ -128,14 +154,19 @@ export async function createLink(
 }
 
 export async function linkUrl(rec: AppLink, egnyteToken: string, days?: number) {
-  const left = days ?? Math.max(1, Math.ceil((new Date(rec.expiresAt).getTime() - Date.now()) / 86_400_000));
+  // A link with no expiry still carries a (10-year) token lifetime.
+  const left = !rec.expiresAt ? 3650 : days || Math.max(1, Math.ceil((new Date(rec.expiresAt).getTime() - Date.now()) / 86_400_000));
   return `${config.appUrl}/apply/${await sealLink({ k: "apply", id: rec.id, t: egnyteToken }, left)}`;
 }
 
-export function linkOpen(rec: AppLink): string | null {
+export function linkOpen(rec: AppLink, ip?: string): string | null {
   if (rec.status === "revoked") return "This application link has been turned off. Please contact the leasing broker.";
-  if (Date.now() > new Date(rec.expiresAt).getTime()) return "This application link has expired. Please contact the leasing broker for a new one.";
-  if (rec.submissions.length >= UPLOAD_LIMITS.maxSubmissions) return "This link has reached its limit of submissions. Please contact the leasing broker.";
+  if (rec.expiresAt && Date.now() > new Date(rec.expiresAt).getTime()) return "This application link has expired. Please contact the leasing broker for a new one.";
+  if (!rec.open && rec.submissions.length >= UPLOAD_LIMITS.maxSubmissions) return "This link has reached its limit of submissions. Please contact the leasing broker.";
+  if (rec.open && ip) {
+    const today = rec.submissions.filter((s) => s.ip === ip && Date.now() - new Date(s.at).getTime() < 86_400_000).length;
+    if (today >= UPLOAD_LIMITS.openPerIpPerDay) return "We've received several applications from this connection today. Please try again tomorrow or contact the leasing broker.";
+  }
   return null;
 }
 
@@ -285,7 +316,9 @@ export async function submitApplication(
   await saveLink(storage, rec);
 
   // Alert the broker on every submission.
-  const to = [rec.createdBy.email, ...config.lease.applicationAlertEmails].filter((e, i, a) => e && a.indexOf(e) === i);
+  const to = [rec.createdBy.email, ...config.lease.applicationAlertEmails, ...(rec.notify || [])]
+    .map((e) => (e || "").toLowerCase())
+    .filter((e, i, a) => e && a.indexOf(e) === i);
   if (emailEnabled() && to.length) {
     const folderLink = await storage.webLink(folder).catch(() => null);
     await sendMail({
