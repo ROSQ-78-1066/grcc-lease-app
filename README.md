@@ -55,7 +55,7 @@ Brokers sign in with their own Egnyte account through the OAuth 2.0 Authorizatio
 1. Go to <https://developers.egnyte.com>, sign in and **register an application key**.
 2. Use the key type that supports the **Authorization Code** flow. If Egnyte only gives you an "internal" key (resource-owner/password flow), email `api-support@egnyte.com` and ask for Authorization Code access for your domain.
 3. Set **Registered OAuth Redirect URI** to `https://YOUR-APP-URL/api/auth/callback`. Egnyte requires HTTPS, so use your Render URL or custom domain, not localhost.
-4. Request the scopes `Egnyte.filesystem`, `Egnyte.user` and `Egnyte.webhooks`.
+4. The app requests the scopes `Egnyte.filesystem` and `Egnyte.user` (add `Egnyte.webhooks` via `EGNYTE_SCOPES` only if you use the optional auto-filing webhook).
 5. Put the **key** in `EGNYTE_CLIENT_ID` and the **secret** in `EGNYTE_CLIENT_SECRET`, and set `EGNYTE_DOMAIN=gtmoran`.
 
 Egnyte API keys have rate limits (queries per second and per day). The app retries automatically when it's throttled. If several brokers use it heavily, ask Egnyte to raise the limits.

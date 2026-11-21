@@ -15,7 +15,8 @@ export const config = {
     domain: env("EGNYTE_DOMAIN", "gtmoran"),
     clientId: env("EGNYTE_CLIENT_ID"),
     clientSecret: env("EGNYTE_CLIENT_SECRET"),
-    scopes: env("EGNYTE_SCOPES", "Egnyte.filesystem Egnyte.user Egnyte.webhooks"),
+    // Egnyte.webhooks is only needed to register the optional auto-filing webhook; add it via EGNYTE_SCOPES if you use that.
+    scopes: env("EGNYTE_SCOPES", "Egnyte.filesystem Egnyte.user"),
     /** Long-lived token used by the webhook (no user session there). */
     serviceToken: env("EGNYTE_SERVICE_TOKEN"),
     /** Optional: only these email domains may sign in (comma separated). */
